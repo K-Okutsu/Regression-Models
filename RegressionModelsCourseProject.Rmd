@@ -1,0 +1,78 @@
+---
+title: "Regression Models Course Project"
+author: "K.Okutsu"
+output: pdf_document
+---
+#Executive Summary
+First of all I want to explain what is mtcars which I analyse in this report. mtcars data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973-74 models).  Course project question is about "Which Transmission(Automatic,Manual) is how better MPG ?". I used single predictor model & multi predictor model. In either case, Manual transmission is better for MPG.  In case of single predictor model (mpg ~ am), Manual transmission is 7MPG better. In case of multi predictor model (mpg ~ cyl + hp + wt + am), Manual transmission is 1.81MPG better. (note:This report was done in Rmd(knitr). Rmd can be found at https://github.com/K-Okutsu/Regression Models)                                    
+
+#Exploratory Data Analysis
+Please refer to the Appendix "1.Violin Plot MPG & Transmission(Automatic vs. Manual)" which  shows Manual transmission is higher MPG generally.  "2. Scatter plot Matrices of Motor Trend Car Road Tests"" shows some correlation exists between "mpg" and other parameters like cyl,hp,wt. 
+```{r}
+data(mtcars)  #load data
+head(mtcars,3)
+```
+```{r}
+# change some parameter class from numeric to factor for regression analysis
+mtcars$cyl <- as.factor(mtcars$cyl);    mtcars$vs <- as.factor(mtcars$vs)
+mtcars$am <- as.factor(mtcars$am);      mtcars$gear <- as.factor(mtcars$gear)
+mtcars$carb <- as.factor(mtcars$carb)
+```
+#Statistical Inference study with Single predictor Model (mpg ~ am)
+First of all I want to check whether MPG of Automatic and Manual transmission is significantly different or not when all parameter except am are ignored.               
+Null Hypothesis : Manual transmission (am=1) MPG population is same with Automatic(am=0).
+```{r, results='hide'}
+t.test(mpg ~ am, data=mtcars)$p.value;t.test(mpg ~ am, data=mtcars)$estimate; #results=hide
+```
+P-value = 0.00137 << 0.01  This is small enough, so we can reject Null Hypothesis.  It means MPG of Manual transmission population is different from MPG of Automatic. Mean MPG of Automatic(am=0) / Manual(am=1) is 17.15/24.39 respectively.  Therefore manual transmission MPG is about 7 miles better than Automatic.
+
+#Regression Analysis 
+I'll compare  1.Single predictor model , 2.Full predictor model & 3.Step model.            
+
+1. Single predictor model : Since transmission influence against MPG is the main subject of this project, am is the predictor of this model. Based on below code analysis, Adjusted R-squared value is 0.3385. So this single predictor model can explain just 34% of MPG.                                  
+```{r, results='hide'}
+singleModel <- lm(mpg ~ am, data=mtcars)
+summary(singleModel)$coefficients;summary(singleModel)$adj.r.squared #results=hide
+```
+2. Full predictor model : All possible parameters are used as predictor.  Based on below code analysis, Adjusted R-squared value is 0.7790. So 78% of MPG variance can be explained. But all of coefficients are not significant because they are more than 0.05.     
+```{r, results='hide'}
+FullModel <- lm(mpg ~ ., data=mtcars)
+summary(FullModel)$coefficients;summary(FullModel)$adj.r.squared  #results=hide
+```
+3. Step Model : Choose a model by AIC in a Stepwise Algorithm
+```{r}
+stepModel <- step(FullModel,trace=0)           
+summary(stepModel)$call;summary(stepModel)$coefficients;summary(stepModel)$adj.r.squared
+
+```
+Adjusted R-squared value is 0.8401. So 84% of MPG variance can be explained.  And four out of six coefficients p-value is significant because they are less than 0.05.  This model is better than other two model .      
+Therefore I select "step model(mpg ~ cyl + hp + wt + am)" as the best model here.
+By coefficients result, mean MPG of "Automatic transmission(am=0)" is 33.71.  If cyl,hp and wt are the same, mean MPG of "Manual transmission(am=1)" is 1.81 better and becomes 35.52 in total. 
+
+#Residual plot and Diagnostics
+Residual analysis was done against selected "step model". Please refer Appendix 3. Residual plot.    
+1.Residuals vs. Fitted : This plot shows there is no significant "non-linearity, unequal error variances, and outliers."       
+2.Normal Q-Q : All points are closely on the line. It means the residuals are normally distributed.             
+3.Scale-Location : Plots are randomly distributed. So we can assume homoscedasticity.
+4.Residuals vs. Leverage : All plots are within "Cook's distance" 0.5 line.  It means there is no outliers which affect model.           
+According to these diagnostics, we can say "Step model(mpg ~ cyl + hp + wt + am)" is the good regression model which fits mtcars data and is reliable to answer the course project questions. 
+
+#Appendix : Supporting figures
+1. Violin Plot MPG & Transmission(Automatic vs. Manual)
+```{r}
+library(ggplot2)
+g <- ggplot(mtcars, aes(x = factor(am), y = mpg, fill = factor(am)))
+g <- g + geom_violin(col = "black", size = 2)
+g <- g + labs(title="Violin plot of MPG & Transmission", x = "Transmission (0 = Automatic, 1 = Manual)",y="MPG")
+g
+```
+2. Scatter plot Matrices of Motor Trend Car Road Tests
+```{r}
+pairs(mtcars,panel = panel.smooth,col = 3 
+      ,main="Scatterplot Matrices of Motor Trend Car Road Tests")
+```
+3. Residual plot
+```{r}
+par(mfrow=c(2,2))
+plot(amIntWtModel)
+```
